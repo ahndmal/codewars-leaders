@@ -22,28 +22,26 @@ import java.time.Duration
 import kotlin.io.path.appendText
 import kotlin.io.path.writeText
 
-
 class Main : HttpFunction {
     val projectId = "silver-adapter-307718"
     val bucketName = "codewars-data"
 
     @Throws(IOException::class)
     override fun service(request: com.google.cloud.functions.HttpRequest?, response: HttpResponse?) {
-
-
-        response?.writer?.write("parsed data")
+        val data = storageData()
+        response?.writer?.write(data)
     }
 
-    fun storageData() {
+    fun storageData(): String {
         val storage: Storage = StorageOptions.newBuilder().setProjectId(projectId).build().service
 //        val bucket: Bucket = storage.get(bucketName, Storage.BucketGetOption.fields(Storage.BucketField.values()));
-        val blobId = BlobId.of(bucketName, "blob_name")
+        val blobId = BlobId.of(bucketName, "codewars_leaders.csv")
         val blobInfo: BlobInfo = BlobInfo.newBuilder(blobId).setContentType("text/plain").build()
 
-        val name: BucketName = BucketName.of("[PROJECT]", "[BUCKET]")
-
-        // create
-        val blob: Blob = storage.create(blobInfo, "Hello, Cloud Storage!".toByteArray(Charset.defaultCharset()))
+        val name: BucketName = BucketName.of(projectId, bucketName)
+        val blobFile = storage.get(blobId)
+        println(String(blobFile.getContent()))
+        return String(blobFile.getContent())
     }
 
     companion object {
@@ -128,30 +126,28 @@ class Main : HttpFunction {
 
             return users
         }
+
+        fun createCSV() {
+            val fileName = "codewars_leaders.csv"
+            val file = Files.createFile(Paths.get(fileName))
+            val header = "id,username,name,honor,clan,position,skills,ranks,challenges\n"
+            file.writeText(header, Charset.defaultCharset(), StandardOpenOption.WRITE)
+
+            val users = Main.getUsersFromWeb()
+            println(">> writing data to CSV")
+            users.forEach {
+                println(">> writing user ${it.username}")
+
+                file.appendText(
+                    "${it.id},${it.username},${it.name},${it.honor}," +
+                            "${it.clan},${it.leaderboardPosition},${it.skills},${it.ranks},${it.codeChallenges}\n"
+                )
+            }
+
+            println(">> Successfully wrote data to CSV")
+
+        }
     }
 }
 
-fun main(args: Array<String>) {
-    createCSV()
-}
 
-fun createCSV() {
-    val fileName = "codewars_leaders.csv"
-    val file = Files.createFile(Paths.get(fileName))
-    val header = "id,username,name,honor,clan,position,skills,ranks,challenges\n"
-    file.writeText(header, Charset.defaultCharset(), StandardOpenOption.WRITE)
-
-    val users = Main.getUsersFromWeb()
-    println(">> writing data to CSV")
-    users.forEach {
-        println(">> writing user ${it.username}")
-
-        file.appendText(
-            "${it.id},${it.username},${it.name},${it.honor}," +
-                    "${it.clan},${it.leaderboardPosition},${it.skills},${it.ranks},${it.codeChallenges}\n"
-        )
-    }
-
-    println(">> Successfully wrote data to CSV")
-
-}
