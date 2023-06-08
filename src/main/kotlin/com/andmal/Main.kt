@@ -2,13 +2,13 @@ package com.andmal
 
 import com.google.cloud.functions.HttpFunction
 import com.google.cloud.functions.HttpResponse
-import com.google.cloud.storage.Bucket
-import com.google.cloud.storage.Storage
-import com.google.cloud.storage.StorageOptions
+import com.google.cloud.storage.*
 import com.google.gson.Gson
+import com.google.storage.v2.BucketName
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
+import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.net.http.HttpClient
@@ -16,11 +16,12 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse.BodyHandlers
 import java.nio.charset.Charset
 import java.nio.file.Files
-import java.nio.file.OpenOption
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.time.Duration
+import kotlin.io.path.appendText
 import kotlin.io.path.writeText
+
 
 class Main : HttpFunction {
     val projectId = "silver-adapter-307718"
@@ -28,23 +29,60 @@ class Main : HttpFunction {
 
     @Throws(IOException::class)
     override fun service(request: com.google.cloud.functions.HttpRequest?, response: HttpResponse?) {
-        val storage: Storage = StorageOptions.newBuilder().setProjectId(projectId).build().service
-//        val bucket: Bucket = storage.get(bucketName, Storage.BucketGetOption.fields(Storage.BucketField.values()));
 
-//        val data = bucket.get("codewars_leaders.csv")
 
         response?.writer?.write("parsed data")
     }
 
+    fun storageData() {
+        val storage: Storage = StorageOptions.newBuilder().setProjectId(projectId).build().service
+//        val bucket: Bucket = storage.get(bucketName, Storage.BucketGetOption.fields(Storage.BucketField.values()));
+        val blobId = BlobId.of(bucketName, "blob_name")
+        val blobInfo: BlobInfo = BlobInfo.newBuilder(blobId).setContentType("text/plain").build()
+
+        val name: BucketName = BucketName.of("[PROJECT]", "[BUCKET]")
+
+        // create
+        val blob: Blob = storage.create(blobInfo, "Hello, Cloud Storage!".toByteArray(Charset.defaultCharset()))
+    }
 
     companion object {
+        fun getUsersFromCsv(filename: String) {
+            val lines = Files.readAllLines(Paths.get(filename))
+            lines.forEach{
+                val user = User()
+                user.id = it.split(",")[0]
+                user.username = it.split(",")[1]
+                user.name = it.split(",")[2]
+                user.honor = Integer.parseInt(it.split(",")[3])
+                user.clan = it.split(",")[1]
+                user.leaderboardPosition = Integer.parseInt(it.split(",")[4])
+                user.skills = arrayListOf() // it.split(",")[5] as ArrayList<Any>
+                user.ranks = Ranks() //it.split(",")[6]
+                user.codeChallenges = CodeChallenges() //it.split(",")[7]
+            }
+        }
+        fun getUsersFromHtmlFile(filename: String) {
+//            val leadersFile = "resources/main/codewars_leaders.html"
+            val file = File(filename)
+            val doc: Document = Jsoup.parse(file)
+            val usersLinks: Elements = doc.select("td>a[href*=\"/users/\"]")
+            usersLinks.forEach {
+                try {
+                    val userName = it.attr("href").replace("/users/", "")
+                    //todo
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+        }
+
         fun getUsersFromWeb(): ArrayList<User> {
             var counter: Int = 0
             val users: ArrayList<User> = ArrayList()
             val leadersLink = "https://www.codewars.com/users/leaderboard"
-//        val leadersFile = "resources/main/codewars_leaders.html"
-//        val file = File(leadersFile)
-
             val userUrl = "https://www.codewars.com/api/v1/users/"
 
             val client = HttpClient.newBuilder()
@@ -60,7 +98,6 @@ class Main : HttpFunction {
 
             val resp = client.send(req, BodyHandlers.ofString())
 
-//        val doc: Document = Jsoup.parse(file)
             val doc: Document = Jsoup.parse(resp.body())
 
             val usersLinks: Elements = doc.select("td>a[href*=\"/users/\"]")
@@ -109,7 +146,7 @@ fun createCSV() {
     users.forEach {
         println(">> writing user ${it.username}")
 
-        file.writeText(
+        file.appendText(
             "${it.id},${it.username},${it.name},${it.honor}," +
                     "${it.clan},${it.leaderboardPosition},${it.skills},${it.ranks},${it.codeChallenges}\n"
         )

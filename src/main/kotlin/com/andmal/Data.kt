@@ -105,14 +105,12 @@ class Ranks {
     var languages: Languages? = null
 }
 
-
 class Ruby {
     var rank = 0
     var name: String? = null
     var color: String? = null
     var score = 0
 }
-
 
 class Shell {
     var rank = 0
