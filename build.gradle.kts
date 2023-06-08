@@ -24,13 +24,14 @@ tasks.jar {
 }
 
 dependencies {
+    // implementation platform('com.google.cloud:libraries-bom:26.16.0')
     implementation(kotlin("stdlib-jdk8"))
     runtimeOnly("org.jetbrains.kotlin:kotlin-stdlib:1.8.21")
     implementation("org.jsoup:jsoup:1.16.1")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.google.cloud.functions:functions-framework-api:1.0.1")
     compileOnly("gradle.plugin.com.github.johnrengelman:shadow:7.1.2")
-    // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib
+    implementation("com.google.cloud:google-cloud-storage:2.22.3")
 }
 
 kotlin {
