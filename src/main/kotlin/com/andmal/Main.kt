@@ -29,7 +29,7 @@ class Main : HttpFunction {
     @Throws(IOException::class)
     override fun service(request: com.google.cloud.functions.HttpRequest?, response: HttpResponse?) {
         val data = storageData()
-        response?.writer?.write(data)
+        response?.writer?.write(data.substring(0, 10))
     }
 
     fun storageData(): String {
@@ -151,3 +151,6 @@ class Main : HttpFunction {
 }
 
 
+fun main() {
+
+}
